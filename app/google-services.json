@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "480659166897",
+    "firebase_url": "https://picklaundry-02-default-rtdb.firebaseio.com",
+    "project_id": "picklaundry-02",
+    "storage_bucket": "picklaundry-02.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:480659166897:android:a9d828d7ca8cc096cf7490",
+        "android_client_info": {
+          "package_name": "com.example.dailyexpenses"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGY1_ueMWFbTvezzFioWApksvSXUnct_g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:480659166897:android:435cb79706301c69cf7490",
+        "android_client_info": {
+          "package_name": "com.example.picklaundry_02"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGY1_ueMWFbTvezzFioWApksvSXUnct_g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
