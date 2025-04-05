@@ -107,7 +107,7 @@ public class Add extends AppCompatActivity {
             if (amount.isEmpty()) {
                 amountInput.setError("Amount required");
             } else {
-                saveToFirebase("Income", amount);  // Saving under 'Income' category
+                saveIncomeToFirebase(amount);  // Store income separately
                 Toast.makeText(Add.this, "Income saved: ₹" + amount, Toast.LENGTH_SHORT).show();
                 bottomSheetDialog.dismiss();
             }
@@ -116,4 +116,30 @@ public class Add extends AppCompatActivity {
         bottomSheetDialog.show();
     }
 
+    private void saveIncomeToFirebase(String amount) {
+        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+        String userId = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : "anonymous";
+
+        DatabaseReference incomeRef = FirebaseDatabase.getInstance().getReference("Income").child(userId); // Root node is 'Income'
+
+        String key = incomeRef.push().getKey();  // Generate unique key for each income entry
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+
+        HashMap<String, Object> incomeData = new HashMap<>();
+        incomeData.put("category", "Income");
+        incomeData.put("amount", amount);
+        incomeData.put("timestamp", timestamp);
+
+        if (key != null) {
+            incomeRef.child(key).setValue(incomeData)
+                    .addOnSuccessListener(aVoid -> Toast.makeText(this, "Income saved successfully!", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to save: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        }
+    }
+
+
+
+    public void income(View view) {
+        showIncomeBottomSheet();
+    }
 }

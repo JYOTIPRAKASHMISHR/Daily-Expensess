@@ -30,12 +30,13 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
+    private static final double TOTAL_EXPENSE_LIMIT = 10000.0; // Expense limit
 
     private RecyclerView recyclerView;
     private ExpenseAdapter expenseAdapter;
     private List<Expense> expenseList;
     private DatabaseReference expenseRef;
-    private TextView tvDateValue, tvExpensesValue;
+    private TextView tvDateValue, tvExpensesValue, tvIncomeValue, tvBalanceValue;
     private String userId;
     private Calendar selectedCalendar;
 
@@ -49,11 +50,13 @@ public class MainActivity extends AppCompatActivity {
 
         tvDateValue = findViewById(R.id.tvDateValue);
         tvExpensesValue = findViewById(R.id.tvExpensesValue);
+        tvIncomeValue = findViewById(R.id.tvIncomeValue);
+        tvBalanceValue = findViewById(R.id.tvBalanceValue);
+
         expenseList = new ArrayList<>();
         expenseAdapter = new ExpenseAdapter(this, expenseList);
         recyclerView.setAdapter(expenseAdapter);
 
-        // Initialize selectedCalendar with the current date
         selectedCalendar = Calendar.getInstance();
         updateDateInView();
 
@@ -62,11 +65,37 @@ public class MainActivity extends AppCompatActivity {
             userId = auth.getCurrentUser().getUid();
             Log.d(TAG, "User ID: " + userId);
             expenseRef = FirebaseDatabase.getInstance().getReference("Moneyspend").child(userId);
-            loadExpenses();  // Load all expenses and calculate total
+            loadExpenses();
+            loadIncome();
         } else {
             Log.e(TAG, "User not logged in!");
             Toast.makeText(this, "Please log in to view expenses.", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void loadIncome() {
+        DatabaseReference incomeRef = FirebaseDatabase.getInstance().getReference("Income").child(userId);
+        incomeRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                double totalIncome = 0.0;
+                for (DataSnapshot incomeSnapshot : snapshot.getChildren()) {
+                    try {
+                        String amountStr = incomeSnapshot.child("amount").getValue(String.class);
+                        if (amountStr != null) {
+                            totalIncome += Double.parseDouble(amountStr);
+                        }
+                    } catch (NumberFormatException e) {
+                        Log.e(TAG, "Invalid income amount format: " + e.getMessage());
+                    }
+                }
+                tvIncomeValue.setText(String.format(Locale.getDefault(), "₹ %.2f", totalIncome));
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e(TAG, "Failed to load income: " + error.getMessage(), error.toException());
+            }
+        });
     }
 
     private void loadExpenses() {
@@ -75,48 +104,39 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 expenseList.clear();
-                double totalAmount = 0.0;  // Initialize total amount
+                double totalExpenses = 0.0;
 
-                if (snapshot.exists()) {
-                    for (DataSnapshot categorySnapshot : snapshot.getChildren()) {
-                        for (DataSnapshot expenseSnapshot : categorySnapshot.getChildren()) {
-                            Expense expense = expenseSnapshot.getValue(Expense.class);
-                            if (expense != null) {
-                                Log.d(TAG, "Loaded → Category: " + expense.getCategory() +
-                                        ", Amount: " + expense.getAmount() +
-                                        ", Date: " + expense.getTimestamp());
-
-                                expenseList.add(expense);  // Add expense to list
-
-                                // Safely parse amount and add to total
-                                try {
-                                    double amount = Double.parseDouble(expense.getAmount());
-                                    totalAmount += amount;
-                                } catch (NumberFormatException e) {
-                                    Log.e(TAG, "Invalid amount format: " + expense.getAmount());
-                                }
-                            } else {
-                                Log.w(TAG, "Null expense at: " + expenseSnapshot.getKey());
+                for (DataSnapshot categorySnapshot : snapshot.getChildren()) {
+                    for (DataSnapshot expenseSnapshot : categorySnapshot.getChildren()) {
+                        Expense expense = expenseSnapshot.getValue(Expense.class);
+                        if (expense != null) {
+                            Log.d(TAG, "Loaded → Category: " + expense.getCategory() +
+                                    ", Amount: " + expense.getAmount() +
+                                    ", Date: " + expense.getTimestamp());
+                            expenseList.add(expense);
+                            try {
+                                totalExpenses += Double.parseDouble(expense.getAmount());
+                            } catch (NumberFormatException e) {
+                                Log.e(TAG, "Invalid amount format: " + expense.getAmount());
                             }
                         }
                     }
-                } else {
-                    Log.w(TAG, "No expenses found.");
                 }
 
-                // Update the total amount TextView
-                tvExpensesValue.setText(String.format(Locale.getDefault(), "₹ %.2f", totalAmount));
-
-                // Refresh RecyclerView
+                tvExpensesValue.setText(String.format(Locale.getDefault(), "₹ %.2f", totalExpenses));
+                updateBalance(totalExpenses);
                 expenseAdapter.notifyDataSetChanged();
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 Log.e(TAG, "Database error: " + error.getMessage(), error.toException());
-                Toast.makeText(MainActivity.this, "Failed to load expenses.", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void updateBalance(double totalExpenses) {
+        double remainingBalance = TOTAL_EXPENSE_LIMIT - totalExpenses;
+        tvBalanceValue.setText(String.format(Locale.getDefault(), "₹ %.2f", remainingBalance));
     }
 
     public void onAddClick(View view) {
@@ -137,7 +157,6 @@ public class MainActivity extends AppCompatActivity {
                 },
                 year, month, day
         );
-
         datePickerDialog.show();
     }
 
@@ -150,11 +169,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onChartsClick(View view) {
-
+        // Implement charts click action
     }
 
     public void onProfileClick(View view) {
-        Intent intent = new Intent (this,Profile.class);
-        startActivity(intent);
+        startActivity(new Intent(this, Profile.class));
     }
 }
